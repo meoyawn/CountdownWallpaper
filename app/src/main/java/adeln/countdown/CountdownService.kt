@@ -153,9 +153,7 @@ class CountdownService : WallpaperService() {
         }
 
         fun draw() {
-            if (!isVisible) {
-                return
-            }
+            if (!isVisible) return
 
             INTERVAL.startMillis = System.currentTimeMillis()
             vh.bind(INTERVAL.toPeriod())
