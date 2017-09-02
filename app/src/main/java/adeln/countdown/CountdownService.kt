@@ -3,6 +3,7 @@ package adeln.countdown
 import android.content.Context
 import android.graphics.Canvas
 import android.graphics.Color
+import android.graphics.Typeface
 import android.service.wallpaper.WallpaperService
 import android.util.MutableInt
 import android.view.Choreographer
@@ -18,12 +19,14 @@ import org.jetbrains.anko.backgroundColor
 import org.jetbrains.anko.gridLayout
 import org.jetbrains.anko.matchParent
 import org.jetbrains.anko.textColor
+import org.jetbrains.anko.textResource
 import org.jetbrains.anko.textView
 import org.joda.time.DateTime
 import org.joda.time.DateTimeConstants
 import org.joda.time.LocalDate
 import org.joda.time.LocalTime
 import org.joda.time.MutableInterval
+import java.util.concurrent.TimeUnit
 import kotlin.properties.Delegates
 
 val TARGET: DateTime =
@@ -31,7 +34,13 @@ val TARGET: DateTime =
         .plusYears(67)
         .toDateTime(LocalTime(0, 0))
 
+val DELAY: Long =
+    TimeUnit.SECONDS.toMillis(1)
+
 val INTERVAL = MutableInterval(System.currentTimeMillis(), TARGET.millis)
+
+val THIN: Typeface =
+    Typeface.create("sans-serif-thin", Typeface.NORMAL)
 
 class ViewHolder(
     val view: View,
@@ -60,12 +69,12 @@ fun Context.mkViewHolder(): ViewHolder {
         columnCount = 6
         backgroundColor = Color.BLACK
 
-        years = addColumn(column)
-        months = addColumn(column)
-        days = addColumn(column)
-        hours = addColumn(column)
-        minutes = addColumn(column)
-        seconds = addColumn(column)
+        years = addColumn(column, R.string.years)
+        months = addColumn(column, R.string.months)
+        days = addColumn(column, R.string.days)
+        hours = addColumn(column, R.string.hours)
+        minutes = addColumn(column, R.string.minutes)
+        seconds = addColumn(column, R.string.seconds)
     }
 
     return ViewHolder(view = v,
@@ -77,21 +86,26 @@ fun Context.mkViewHolder(): ViewHolder {
                       seconds = seconds)
 }
 
-fun @AnkoViewDslMarker _GridLayout.addColumn(column: MutableInt): TextView {
+typealias StringRes = Int
+
+fun @AnkoViewDslMarker _GridLayout.addColumn(column: MutableInt, txt: StringRes): TextView {
 
     val tv = textView {
         text = "top"
         textColor = Color.WHITE
         gravity = Gravity.CENTER_HORIZONTAL or Gravity.BOTTOM
+        textSize = 28F
+        typeface = THIN
     }.lparams {
         rowSpec = GridLayout.spec(0, 1F)
         columnSpec = GridLayout.spec(column.value, 1F)
     }
 
     textView {
-        text = "bottom"
+        textResource = txt
         textColor = Color.WHITE
         gravity = Gravity.CENTER_HORIZONTAL or Gravity.TOP
+        typeface = THIN
     }.lparams {
         rowSpec = GridLayout.spec(1, 1F)
         columnSpec = GridLayout.spec(column.value, 1F)
@@ -113,7 +127,7 @@ class CountdownService : WallpaperService() {
         override fun onVisibilityChanged(visible: Boolean) {
             if (!visible) return
 
-            val desiredWidth = desiredMinimumWidth
+            val desiredWidth = resources.displayMetrics.widthPixels
             val desiredHeight = desiredMinimumHeight
             val w = View.MeasureSpec.makeMeasureSpec(desiredWidth, View.MeasureSpec.AT_MOST)
             val h = View.MeasureSpec.makeMeasureSpec(desiredHeight, View.MeasureSpec.AT_MOST)
@@ -133,7 +147,7 @@ class CountdownService : WallpaperService() {
                 vh.view.draw(it)
             }
 
-            Choreographer.getInstance().postFrameCallback(drawer)
+            Choreographer.getInstance().postFrameCallbackDelayed(drawer, DELAY)
         }
     }
 
