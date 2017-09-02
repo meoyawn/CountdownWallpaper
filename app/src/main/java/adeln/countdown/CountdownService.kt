@@ -68,7 +68,13 @@ fun Context.mkViewHolder(): ViewHolder {
         seconds = addColumn(column)
     }
 
-    return ViewHolder(v, years, months, days, hours, minutes, seconds)
+    return ViewHolder(view = v,
+                      years = years,
+                      months = months,
+                      days = days,
+                      hours = hours,
+                      minutes = minutes,
+                      seconds = seconds)
 }
 
 fun @AnkoViewDslMarker _GridLayout.addColumn(column: MutableInt): TextView {
