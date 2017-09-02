@@ -7,17 +7,32 @@ android {
 
     defaultConfig {
         applicationId "adeln.countdown"
+
         minSdkVersion 21
         targetSdkVersion 26
+
         versionCode 1
         versionName "1.0"
+
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
+    }
+
+    signingConfigs {
+        release {
+            storeFile file("release.keystore")
+            storePassword "DJRABqUT6Y3b"
+            keyAlias "key0"
+            keyPassword "DJRABqUT6Y3b"
+        }
     }
 
     buildTypes {
         release {
-            minifyEnabled false
+            signingConfig signingConfigs.release
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+
+            minifyEnabled true
+            shrinkResources true
         }
     }
 }
