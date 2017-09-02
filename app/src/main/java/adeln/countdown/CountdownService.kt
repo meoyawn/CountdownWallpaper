@@ -16,16 +16,20 @@ import android.widget.TextView
 import org.jetbrains.anko.AnkoViewDslMarker
 import org.jetbrains.anko._GridLayout
 import org.jetbrains.anko.backgroundColor
+import org.jetbrains.anko.dip
 import org.jetbrains.anko.gridLayout
 import org.jetbrains.anko.matchParent
+import org.jetbrains.anko.padding
 import org.jetbrains.anko.textColor
 import org.jetbrains.anko.textResource
 import org.jetbrains.anko.textView
+import org.jetbrains.anko.topPadding
 import org.joda.time.DateTime
 import org.joda.time.DateTimeConstants
 import org.joda.time.LocalDate
 import org.joda.time.LocalTime
 import org.joda.time.MutableInterval
+import org.joda.time.Period
 import java.util.concurrent.TimeUnit
 import kotlin.properties.Delegates
 
@@ -52,6 +56,15 @@ class ViewHolder(
     val seconds: TextView
 )
 
+fun ViewHolder.bind(p: Period) {
+    years.text = p.years.toString()
+    months.text = p.months.toString()
+    days.text = p.days.toString()
+    hours.text = p.hours.toString()
+    minutes.text = p.minutes.toString()
+    seconds.text = p.seconds.toString()
+}
+
 fun Context.mkViewHolder(): ViewHolder {
     var years: TextView by Delegates.notNull()
     var months: TextView by Delegates.notNull()
@@ -64,6 +77,8 @@ fun Context.mkViewHolder(): ViewHolder {
 
     val v = gridLayout {
         layoutParams = ViewGroup.LayoutParams(matchParent, matchParent)
+        padding = dip(16)
+        topPadding = dip(100)
 
         rowCount = 2
         columnCount = 6
@@ -91,10 +106,9 @@ typealias StringRes = Int
 fun @AnkoViewDslMarker _GridLayout.addColumn(column: MutableInt, txt: StringRes): TextView {
 
     val tv = textView {
-        text = "top"
         textColor = Color.WHITE
         gravity = Gravity.CENTER_HORIZONTAL or Gravity.BOTTOM
-        textSize = 28F
+        textSize = 42F
         typeface = THIN
     }.lparams {
         rowSpec = GridLayout.spec(0, 1F)
@@ -102,9 +116,9 @@ fun @AnkoViewDslMarker _GridLayout.addColumn(column: MutableInt, txt: StringRes)
     }
 
     textView {
-        textResource = txt
-        textColor = Color.WHITE
         gravity = Gravity.CENTER_HORIZONTAL or Gravity.TOP
+        textResource = txt
+        textColor = Color.LTGRAY
         typeface = THIN
     }.lparams {
         rowSpec = GridLayout.spec(1, 1F)
@@ -142,6 +156,9 @@ class CountdownService : WallpaperService() {
             if (!isVisible) {
                 return
             }
+
+            INTERVAL.startMillis = System.currentTimeMillis()
+            vh.bind(INTERVAL.toPeriod())
 
             surfaceHolder.canvas {
                 vh.view.draw(it)
