@@ -2,18 +2,16 @@ package adeln.countdown
 
 import android.annotation.SuppressLint
 import android.app.Activity
-import android.app.DatePickerDialog
-import android.app.Dialog
-import android.app.DialogFragment
-import android.app.FragmentManager
-import android.app.FragmentTransaction
 import android.app.WallpaperManager
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
-import android.preference.Preference
+import android.preference.DialogPreference
 import android.preference.PreferenceActivity
+import android.preference.PreferenceManager
+import android.view.View
+import android.widget.DatePicker
 import org.jetbrains.anko.ctx
 import org.joda.time.LocalDate
 
@@ -32,48 +30,48 @@ class MainActivity : Activity() {
     }
 }
 
-class DatePickerFragment : DialogFragment() {
+class DatePreference(ctx: Context) : DialogPreference(ctx) {
 
-    companion object {
-        fun new(ld: LocalDate): DatePickerFragment =
-            DatePickerFragment().also {
-                it.arguments = Bundle().also {
-                    it.putSerializable("date", ld)
-                }
-            }
+    lateinit var dp: DatePicker
+
+    override fun onAttachedToHierarchy(preferenceManager: PreferenceManager?) {
+        super.onAttachedToHierarchy(preferenceManager)
+        summary = getPersistedString(null)
     }
 
-    fun dateArg(): LocalDate =
-        arguments.getSerializable("date") as LocalDate
+    override fun onCreateDialogView(): View =
+        DatePicker(context).also { dp = it }
 
-    override fun onCreateDialog(savedInstanceState: Bundle): Dialog {
-        val listener = DatePickerDialog.OnDateSetListener { _, y, m, d ->
-            LocalDate(y, m, d)
-        }
+    override fun onBindDialogView(view: View?) {
+        super.onBindDialogView(view)
 
-        val dt = dateArg()
-        return DatePickerDialog(ctx, listener, dt.year, dt.monthOfYear, dt.dayOfMonth)
+        val dt = getPersistedString(null)
+            ?.let { LocalDate.parse(it) }
+            ?: LocalDate.now()
+
+        dp.updateDate(dt.year, dt.monthOfYear - 1, dt.dayOfMonth)
     }
-}
 
-fun FragmentTransaction.commitNow(mgr: FragmentManager) {
-    commit()
-    mgr.executePendingTransactions()
+    override fun onDialogClosed(positiveResult: Boolean) {
+        super.onDialogClosed(positiveResult)
+        if (!positiveResult) return
+
+        val str = LocalDate(dp.year, dp.month + 1, dp.dayOfMonth).toString()
+        persistString(str)
+        summary = str
+    }
 }
 
 @SuppressLint("ExportedPreferenceActivity")
 class SettingsActivity : PreferenceActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        preferenceScreen = preferenceManager.createPreferenceScreen(ctx)
-        val p = Preference(ctx).apply {
-            setOnPreferenceClickListener {
-                fragmentManager.beginTransaction()
-                    .add(DatePickerFragment.new(LocalDate.now()), "fuck")
-                    .commitNow(fragmentManager)
-                true
-            }
+
+        val date = DatePreference(ctx).also {
+            it.key = "date"
+            it.setTitle(R.string.date)
         }
-        preferenceScreen.addPreference(p)
+
+        preferenceScreen = preferenceManager.createPreferenceScreen(ctx).also { it.addPreference(date) }
     }
 }

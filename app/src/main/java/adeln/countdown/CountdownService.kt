@@ -4,6 +4,7 @@ import android.content.Context
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Typeface
+import android.preference.PreferenceManager
 import android.service.wallpaper.WallpaperService
 import android.util.MutableInt
 import android.view.Choreographer
@@ -16,6 +17,7 @@ import android.widget.TextView
 import org.jetbrains.anko.AnkoViewDslMarker
 import org.jetbrains.anko._GridLayout
 import org.jetbrains.anko.backgroundColor
+import org.jetbrains.anko.ctx
 import org.jetbrains.anko.dip
 import org.jetbrains.anko.gridLayout
 import org.jetbrains.anko.matchParent
@@ -25,23 +27,19 @@ import org.jetbrains.anko.textResource
 import org.jetbrains.anko.textView
 import org.jetbrains.anko.topPadding
 import org.joda.time.DateTime
-import org.joda.time.DateTimeConstants
 import org.joda.time.LocalDate
 import org.joda.time.LocalTime
 import org.joda.time.MutableInterval
 import org.joda.time.Period
+import org.joda.time.PeriodType
 import java.util.concurrent.TimeUnit
 import kotlin.properties.Delegates
-
-val TARGET: DateTime =
-    LocalDate(1992, DateTimeConstants.JULY, 6)
-        .plusYears(67)
-        .toDateTime(LocalTime(0, 0))
 
 val DELAY: Long =
     TimeUnit.SECONDS.toMillis(1)
 
-val INTERVAL = MutableInterval(System.currentTimeMillis(), TARGET.millis)
+val INTERVAL: MutableInterval =
+    MutableInterval(System.currentTimeMillis(), System.currentTimeMillis())
 
 val THIN: Typeface =
     Typeface.create("sans-serif-thin", Typeface.NORMAL)
@@ -108,7 +106,7 @@ fun @AnkoViewDslMarker _GridLayout.addColumn(column: MutableInt, txt: StringRes)
     val tv = textView {
         textColor = Color.WHITE
         gravity = Gravity.CENTER_HORIZONTAL or Gravity.BOTTOM
-        textSize = 42F
+        textSize = 38F
         typeface = THIN
     }.lparams {
         rowSpec = GridLayout.spec(0, 1F)
@@ -141,6 +139,14 @@ class CountdownService : WallpaperService() {
         override fun onVisibilityChanged(visible: Boolean) {
             if (!visible) return
 
+            INTERVAL.endMillis = PreferenceManager.getDefaultSharedPreferences(ctx)
+                .getString("date", null)
+                ?.let { LocalDate.parse(it) }
+                ?.toDateTime(LocalTime(0, 0))
+                ?.millis
+                ?.takeIf { it > INTERVAL.startMillis }
+                ?: DateTime.now().plusDays(1).millis
+
             val desiredWidth = resources.displayMetrics.widthPixels
             val desiredHeight = desiredMinimumHeight
             val w = View.MeasureSpec.makeMeasureSpec(desiredWidth, View.MeasureSpec.AT_MOST)
@@ -156,7 +162,7 @@ class CountdownService : WallpaperService() {
             if (!isVisible) return
 
             INTERVAL.startMillis = System.currentTimeMillis()
-            vh.bind(INTERVAL.toPeriod())
+            vh.bind(INTERVAL.toPeriod(PeriodType.yearMonthDayTime()))
 
             surfaceHolder.canvas {
                 vh.view.draw(it)
